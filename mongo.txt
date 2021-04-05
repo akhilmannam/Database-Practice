@@ -1,0 +1,119 @@
+> db.students.insertMany([
+...     {
+...         "name" : "A",
+...         "batch" : 1
+...     },
+...     {
+...         "name" : "B",
+...         "batch" : 1
+...     },
+...     {
+...         "name" : "C",
+...         "batch" : 2
+...     },
+...     {
+...         "name" : "D",
+...         "batch" : 2
+...     },
+...     {
+...         "name" : "E",
+...         "batch" : 3
+...     },
+...     {
+...         "name" : "F",
+...         "batch" : 3
+...     }
+... ]);
+{
+        "acknowledged" : true,
+        "insertedIds" : [
+                ObjectId("606a9d7ae8d3ae9355fe4199"),
+                ObjectId("606a9d7ae8d3ae9355fe419a"),
+                ObjectId("606a9d7ae8d3ae9355fe419b"),
+                ObjectId("606a9d7ae8d3ae9355fe419c"),
+                ObjectId("606a9d7ae8d3ae9355fe419d"),
+                ObjectId("606a9d7ae8d3ae9355fe419e")
+        ]
+}
+> db.batches.insertMany([
+...     {
+...         "batchID" : 1,
+...         "attendance" : [
+...             {
+...                 "date" : "17-01-2021",
+...                 "studentsPresent" : ["A", "B"]
+...             },
+...             {
+...                 "date" : "18-01-2021",
+...                 "studentsPresent" : ["B"]
+...             }
+...         ]
+...     },
+...     {
+...         "batchID" : 2,
+...         "attendance" : [
+...             {
+...                 "date" : "19-01-2021",
+...                 "studentsPresent" : ["C"]
+...             },
+...             {
+...                 "date" : "20-01-2021",
+...                 "studentsPresent" : ["C", "D"]
+...             }
+...         ]
+...     },
+...     {
+...         "batchID" : 3,
+...         "attendance" : [
+...             {
+...                 "date" : "21-01-2021",
+...                 "studentsPresent" : ["E", "F"]
+...             },
+...             {
+...                 "date" : "22-01-2021",
+...                 "studentsPresent" : ["E", "F"]
+...             }
+...         ]
+...     }
+... ]);
+{
+        "acknowledged" : true,
+        "insertedIds" : [
+                ObjectId("606a9dbfe8d3ae9355fe419f"),
+                ObjectId("606a9dbfe8d3ae9355fe41a0"),
+                ObjectId("606a9dbfe8d3ae9355fe41a1")
+        ]
+}
+> db.batches.update({"batchID" : 3},{$push:{"attendance":{"date" : "23-01-2020","studentsPresent" : ["F"]}}})
+WriteResult({ "nMatched" : 1, "nUpserted" : 0, "nModified" : 1 })
+> db.students.aggregate([{
+    $lookup: {
+        from: 'batches',
+        localField: 'batchID',
+        foreignField: 'batchID',
+        as: 'students'
+    }
+}, {
+    $replaceRoot: {
+        newRoot: {
+            $mergeObjects: [{
+                    $arrayElemAt: [
+                        '$students',
+                        0
+                    ]
+                },
+                '$$ROOT'
+            ]
+        }
+    }
+}, {
+    $project: {
+        students: 0
+    }
+}, {
+    $match: {
+        name: 'A'
+    }
+}])
+> db.batches.aggregate([ {   $lookup:{   from: 'students',localField:'batchID',foreignField:'batchID',as:'students'} }, {$match : {batchID : 1}}]);
+{ "_id" : ObjectId("606a9dbfe8d3ae9355fe419f"), "batchID" : 1, "attendance" : [ { "date" : "17-01-2021", "studentsPresent" : [ "A", "B" ] }, { "date" : "18-01-2021", "studentsPresent" : [ "B" ] } ], "students" : [ ] }
